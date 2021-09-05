@@ -18,37 +18,47 @@ def ecg(mensagem):
     import matplotlib.pyplot
     from numpy.core.fromnumeric import size
 
-    linha = []
+    #Manipulação de uma string para um array de caracteres
+    arrayCaracteres = []
     for palavra in mensagem:
         for letra in palavra:
-            linha.append(letra)
+            arrayCaracteres.append(letra)
 
-    s1= linha[32:2532]
+    #Retirar o cabeçalho
+    payloadCaracteres= arrayCaracteres[32:2532]
 
+    #Manipular para um array de pares de caracteres
     i=0
-
-    w=[]
-    while i < size(s1)-1:
-        aux = s1[i] + '' + s1[i+1]
-        w.append(aux)
+    payloadParesHexa=[]
+    while i < size(payloadCaracteres)-1:
+        aux = payloadCaracteres[i] + '' + payloadCaracteres[i+1]
+        payloadParesHexa.append(aux)
         i +=2
 
-    D = []
-    for val in w:
-        D.append(int(val,16))
+    #Converter de Hexa para int - Valores de 0 a 255
+    payloadInt = []
+    for val in payloadParesHexa:
+        payloadInt.append(int(val,16))
 
-    F = 5/size(D)
-    aux = F
-
-    G = []
-    while F <= 5:
-        G.append(F)
-        F+= aux
+    # Gerando unidade de tempo
+    tempo = 5/size(payloadInt)
     
-    if(size(D)>size(G)):
-        del(D[size(D)-1])
+    #Gerando array com todas os valores de tempo
+    aux = tempo
+    arrayTempo = []
+    while tempo <= 5:
+        arrayTempo.append(tempo)
+        tempo+= aux
+    
+    #Verificação de dimensões entre dados a serem plotados
+    if(size(payloadInt)>size(arrayTempo)):
+        del(payloadInt[size(payloadInt)-1])
 
-    matplotlib.pyplot.plot(G, D)
+    #Plotando os dados
+    matplotlib.pyplot.plot(arrayTempo, payloadInt)
+    matplotlib.pyplot.xlabel('time in seconds')
+    matplotlib.pyplot.ylabel('Amplitude (normalised)')
+    matplotlib.pyplot.title('Heart beat signal Template')
     matplotlib.pyplot.show()
 
 def connect_mqtt() -> mqtt_client:
@@ -67,12 +77,10 @@ def connect_mqtt() -> mqtt_client:
 
 def subscribe(client: mqtt_client):
     def on_message(client, userdata, msg):
-
+        print(f"Received `{msg.payload}` from `{msg.topic}` topic and time `")
         res = ''.join(format(x, '02x') for x in msg.payload)
-
+        print(f"Received `{res}` from `{msg.topic}` topic and time `")
         ecg(res)
-
-        print(f"{res}")
 
     client.subscribe(topic)
     client.on_message = on_message
